@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: wec-automotriz-api
+    runtime: python
+    region: oregon
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      # Set DATABASE_URL in Render dashboard → paste your Supabase connection string
+      - key: DATABASE_URL
+        sync: false
+      # Render can auto-generate a secure random value
+      - key: JWT_SECRET
+        generateValue: true
+      # Set in Render dashboard
+      - key: ADMIN_SECRET
+        sync: false
+      # Your Vercel frontend URL e.g. https://wec-automotriz.vercel.app
+      - key: SITE_URL
+        sync: false
+      - key: DEV_MODE
+        value: "false"
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: NOTIFY_EMAIL
+        sync: false
+      - key: HCAPTCHA_SECRET
+        sync: false
+      - key: HCAPTCHA_SITEKEY
+        sync: false
+      - key: UPLOAD_DIR
+        value: /tmp/talleres_uploads

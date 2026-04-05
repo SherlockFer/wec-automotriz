@@ -1,0 +1,164 @@
+.navbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  padding: 0;
+  background: var(--black);
+  border-bottom: 3px solid var(--accent);
+  transition: box-shadow 0.3s;
+}
+.navbar--scrolled { box-shadow: 0 2px 20px rgba(7,53,144,0.3); }
+
+.navbar__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  height: 64px;
+}
+
+/* ── LOGO: TALLERES small top, BOBBY big bottom ── */
+.navbar__logo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.navbar__logo-icon { font-size: 1.4rem; line-height: 1; }
+.navbar__logo-img { height: 48px; width: auto; object-fit: contain; }
+.navbar__logo-text { display: flex; flex-direction: column; line-height: 1; }
+.navbar__logo-fallback { display: none; }
+.navbar__logo-talleres {
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  font-weight: 800;
+  text-transform: uppercase;
+  line-height: 1;
+}
+.navbar__logo-bobby {
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+  letter-spacing: 0.04em;
+  color: var(--white);
+  line-height: 1;
+}
+
+/* ── Links ── */
+.navbar__links {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  list-style: none;
+  height: 100%;
+  flex: 1;
+  justify-content: flex-end;
+}
+.navbar__link {
+  font-family: var(--font-condensed);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.72);
+  padding: 0 0.8rem;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s, background 0.2s;
+  position: relative;
+  white-space: nowrap;
+}
+.navbar__link::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transition: transform 0.2s;
+}
+.navbar__link:hover, .navbar__link--active { color: var(--white); background: rgba(255,255,255,0.07); }
+.navbar__link--active::after, .navbar__link:hover::after { transform: scaleX(1); }
+
+/* ── Phone ── */
+.navbar__phone {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--accent);
+  color: var(--black);
+  padding: 0.48rem 0.9rem;
+  font-family: var(--font-condensed);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  clip-path: polygon(0 0,calc(100% - 7px) 0,100% 100%,7px 100%);
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+.navbar__phone:hover { background: var(--accent-dark); }
+
+/* ── User ── */
+.navbar__user {
+  display: flex; align-items: center; gap: 0.4rem;
+  background: rgba(255,255,255,0.09);
+  padding: 0.32rem 0.7rem;
+  border: 1px solid rgba(255,255,255,0.18);
+  height: 36px;
+}
+.navbar__user-info {
+  display: flex; align-items: center; gap: 0.3rem;
+  font-family: var(--font-condensed);
+  font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em;
+  color: rgba(255,255,255,0.85);
+  white-space: nowrap;
+}
+.navbar__logout {
+  background: none; border: none;
+  color: rgba(255,255,255,0.45);
+  display: flex; align-items: center; padding: 2px;
+  transition: color 0.2s;
+}
+.navbar__logout:hover { color: var(--accent); }
+.navbar__login-btn {
+  display: flex; align-items: center; gap: 0.4rem;
+  font-family: var(--font-condensed);
+  font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em;
+  color: rgba(255,255,255,0.7);
+  padding: 0.32rem 0.7rem;
+  border: 1px solid rgba(255,255,255,0.2);
+  height: 36px;
+  transition: color 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+.navbar__login-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+/* ── Mobile ── */
+.navbar__burger {
+  display: none; background: none; border: none; color: var(--white); flex-shrink: 0;
+}
+@media (max-width: 960px) {
+  .navbar__burger { display: block; }
+  .navbar__links {
+    display: none;
+    position: fixed; inset: 0; top: 64px;
+    background: var(--black);
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+    padding: 1rem 0;
+    height: calc(100vh - 64px);
+    overflow-y: auto;
+    gap: 0;
+  }
+  .navbar__links--open { display: flex; }
+  .navbar__link {
+    font-size: 1.1rem; height: 52px; padding: 0 1.5rem;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .navbar__phone { margin: 1rem 1.5rem; justify-content: center; clip-path: none; padding: 0.875rem; }
+  .navbar__user, .navbar__login-btn { margin: 0.5rem 1.5rem; }
+}
