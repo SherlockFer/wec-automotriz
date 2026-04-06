@@ -415,8 +415,6 @@ def _verify_key(type_: str, value: str) -> str:
     return f"{type_}:{value.strip().lower()}"
 
 def _send_verify_email(to: str, code: str):
-    if not SMTP_USER or not SMTP_PASS:
-        raise HTTPException(503, "Servicio de email no configurado")
     html = f"""{email_header()}
     <div style="padding:32px;font-family:sans-serif">
       <h2 style="color:#073590">Código de verificación</h2>
