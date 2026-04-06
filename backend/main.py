@@ -1009,7 +1009,11 @@ async def track_event(data: dict, request: Request):
     event_type = data.get("event_type", "")
     if event_type not in ("page_view", "click_reservar", "click_llamar"):
         return {"ok": False}
-    ip = request.headers.get("x-forwarded-for", request.client.host if request.client else None)
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        ip = forwarded.split(",")[0].strip()
+    else:
+        ip = request.client.host if request.client else None
     ua = request.headers.get("user-agent", "")
     await database.execute(page_events.insert().values(
         event_type=event_type,
@@ -1094,6 +1098,42 @@ async def page_analytics(days: int = 30, user=Depends(require_admin)):
         for (label, code), cnt in sorted(loc_counts.items(), key=lambda x: -x[1])
     ]
 
+    # Device breakdown from user-agent strings
+    def parse_device(ua: str) -> str:
+        if not ua:
+            return "Desconocido"
+        ua_lower = ua.lower()
+        if "mobile" in ua_lower or "android" in ua_lower or "iphone" in ua_lower:
+            return "Móvil"
+        if "tablet" in ua_lower or "ipad" in ua_lower:
+            return "Tablet"
+        return "Escritorio"
+
+    def parse_browser(ua: str) -> str:
+        if not ua:
+            return "Desconocido"
+        if "edg/" in ua.lower():
+            return "Edge"
+        if "opr/" in ua.lower() or "opera" in ua.lower():
+            return "Opera"
+        if "chrome/" in ua.lower():
+            return "Chrome"
+        if "firefox/" in ua.lower():
+            return "Firefox"
+        if "safari/" in ua.lower():
+            return "Safari"
+        return "Otro"
+
+    device_counts: dict = defaultdict(int)
+    browser_counts: dict = defaultdict(int)
+    for e in events:
+        if e["event_type"] == "page_view":
+            device_counts[parse_device(e.get("user_agent") or "")] += 1
+            browser_counts[parse_browser(e.get("user_agent") or "")] += 1
+
+    devices = [{"device": k, "visits": v} for k, v in sorted(device_counts.items(), key=lambda x: -x[1])]
+    browsers = [{"browser": k, "visits": v} for k, v in sorted(browser_counts.items(), key=lambda x: -x[1])]
+
     return {
         "period_days": days,
         "totals": {
@@ -1104,6 +1144,8 @@ async def page_analytics(days: int = 30, user=Depends(require_admin)):
         },
         "daily":     daily_list,
         "locations": locations,
+        "devices":   devices,
+        "browsers":  browsers,
     }
 
 # ── Progress ─────────────────────────────────────────────────────────────────
