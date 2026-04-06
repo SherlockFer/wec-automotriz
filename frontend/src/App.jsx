@@ -3,7 +3,6 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
-import DevUserSwitcher from './components/DevUserSwitcher'
 import Home from './pages/Home'
 import Services from './pages/Services'
 import Suspension from './pages/Suspension'
@@ -72,7 +71,6 @@ function AppRoutes() {
         </Routes>
       </main>
       <Footer />
-      <DevUserSwitcher />
     </>
   )
 }

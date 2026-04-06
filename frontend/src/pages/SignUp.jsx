@@ -38,8 +38,8 @@ export default function SignUp() {
           <div className="login-card__header" style={{marginBottom:'1.5rem'}}>
             <span className="login-card__icon">🔧</span>
             <div>
-              <div className="login-card__talleres-label">TALLERES</div>
-              <div className="login-card__bobby">BOBBY</div>
+              <div className="login-card__talleres-label">WEC</div>
+              <div className="login-card__bobby">TALLER AUTOMOTRIZ</div>
             </div>
           </div>
           <h2 style={{fontFamily:'var(--font-display)',fontSize:'2rem',color:'var(--black)',marginBottom:'0.5rem',letterSpacing:'0.03em'}}>CREA TU CUENTA</h2>

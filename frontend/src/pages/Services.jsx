@@ -7,7 +7,7 @@ const UNSPLASH = {
   preventive: 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=600&q=80',
   brakes:     'https://images.unsplash.com/photo-1580274455191-1c62238fa333?w=600&q=80',
   alignment:  'https://images.unsplash.com/photo-1558980664-1db506751c6c?w=600&q=80',
-  oil:        'https://images.unsplash.com/photo-1635784063388-1ff0f8b23a0c?w=600&q=80',
+  oil:        'https://images.unsplash.com/photo-1615906655593-ad0386982a0f?w=600&q=80',
   suspension: 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=600&q=80',
 }
 

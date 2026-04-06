@@ -162,11 +162,10 @@ export default function SuperAdmin() {
         <div className="sa-creds">
           <h4>🔑 Credenciales del sistema</h4>
           {[
-            {role:'SuperAdmin',  email:'superadmin@talleresbobby.pe', pw:'SuperBobby2024!'},
-            {role:'Admin',       email:'admin@talleresbobby.pe',      pw:'AdminBobby2024!'},
-            {role:'Admin (seed)',email:'roberto@talleresbobby.pe',    pw:'Admin2024!'},
-            {role:'Admin (seed)',email:'claudia@talleresbobby.pe',    pw:'Admin2024!'},
-            {role:'Usuario',     email:'user@talleresbobby.pe',       pw:'UserBobby2024!'},
+            {role:'SuperAdmin',  email:'superadmin@wecautomotriz.pe',  pw:'SuperWec2024!'},
+            {role:'Admin',       email:'wilmer@wecautomotriz.pe',      pw:'AdminWec2026!'},
+            {role:'Admin',       email:'angelica@wecaurtomotriz.pe',   pw:'AdminWec2026!'},
+            {role:'Usuario',     email:'user@wecautomotriz.pe',        pw:'UserWec2024!'},
             {role:'Demo User 1', email:'juan@demo.com',               pw:'Demo2024!'},
             {role:'Demo User 2', email:'maria@demo.com',              pw:'Demo2024!'},
             {role:'Demo User 3', email:'carlos@demo.com',             pw:'Demo2024!'},

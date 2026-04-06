@@ -84,6 +84,10 @@ export const getAuditLogs  = (limit=50) => API.get('/admin/logs', { params: { li
 export const undoAction    = (id)       => API.post(`/admin/logs/${id}/undo`)
 export const redoAction    = (id)       => API.post(`/admin/logs/${id}/redo`)
 
+// Page analytics
+export const trackEvent      = (event_type, page) => API.post('/track', { event_type, page }).catch(()=>{})
+export const getPageAnalytics = (days=30)          => API.get('/admin/page-analytics', { params: { days } })
+
 // Approval History
 export const getApprovalHistory  = (id) => API.get(`/bookings/${id}/approval-history`)
 export const getWorkflowHistory  = (id) => API.get(`/bookings/${id}/workflow-history`)

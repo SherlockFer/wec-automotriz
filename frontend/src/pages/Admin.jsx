@@ -11,7 +11,8 @@ import {
   getAllBookings, getBookingStats, updateBookingStatus, updateCarProfile,
   cancelBooking, setCapacity, getWaLink, uploadReceptionImage, getProgress,
   getAdminUsers, adminGetMessages, adminReplyMessage, adminUnreadCount,
-  getAuditLogs, undoAction, redoAction, getAnalytics, getApprovalHistory, getWorkflowHistory
+  getAuditLogs, undoAction, redoAction, getAnalytics, getApprovalHistory, getWorkflowHistory,
+  getPageAnalytics
 } from '../api/index.js'
 import { useAuth } from '../context/AuthContext'
 import './Admin.css'
@@ -946,6 +947,135 @@ function LogsTab() {
 }
 
 /* ══════════════════════════════════════════════════════════
+   VISITAS TAB
+   ══════════════════════════════════════════════════════════ */
+function VisitasTab() {
+  const [data,    setData]    = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [days,    setDays]    = useState(30)
+
+  const load = async (d) => {
+    setLoading(true)
+    try { const r = await getPageAnalytics(d); setData(r.data) } catch {}
+    finally { setLoading(false) }
+  }
+
+  useEffect(() => { load(days) }, [days])
+
+  const conversion = data && data.totals.page_views > 0
+    ? ((data.totals.click_reservar / data.totals.page_views) * 100).toFixed(1)
+    : '0.0'
+
+  const maxDay = data ? Math.max(...data.daily.map(d => d.page_view), 1) : 1
+
+  return (
+    <div className="visitas-tab">
+      <div className="visitas-header">
+        <div>
+          <h3>📊 Visitas y clicks</h3>
+          <p>Cuántas personas visitan la web, hacen click en Reservar o llaman.</p>
+        </div>
+        <div className="visitas-period">
+          {[7,30,90].map(d => (
+            <button key={d} className={`visitas-period-btn${days===d?' active':''}`} onClick={()=>setDays(d)}>
+              {d}d
+            </button>
+          ))}
+          <button className="admin-refresh" onClick={()=>load(days)}><RefreshCw size={15}/></button>
+        </div>
+      </div>
+
+      {loading ? <div className="admin-loading">Cargando estadísticas…</div> : !data ? (
+        <div className="admin-loading">Sin datos aún. Las visitas aparecerán aquí cuando alguien entre a la web.</div>
+      ) : (
+        <>
+          {/* KPI cards */}
+          <div className="visitas-kpis">
+            <div className="visitas-kpi">
+              <div className="visitas-kpi__icon">👁️</div>
+              <div className="visitas-kpi__val">{data.totals.page_views.toLocaleString()}</div>
+              <div className="visitas-kpi__label">Visitas totales</div>
+            </div>
+            <div className="visitas-kpi">
+              <div className="visitas-kpi__icon">👤</div>
+              <div className="visitas-kpi__val">{data.totals.unique_visitors.toLocaleString()}</div>
+              <div className="visitas-kpi__label">Visitantes únicos</div>
+            </div>
+            <div className="visitas-kpi visitas-kpi--accent">
+              <div className="visitas-kpi__icon">📅</div>
+              <div className="visitas-kpi__val">{data.totals.click_reservar.toLocaleString()}</div>
+              <div className="visitas-kpi__label">Clicks "Reservar"</div>
+            </div>
+            <div className="visitas-kpi visitas-kpi--green">
+              <div className="visitas-kpi__icon">📞</div>
+              <div className="visitas-kpi__val">{data.totals.click_llamar.toLocaleString()}</div>
+              <div className="visitas-kpi__label">Clicks "Llamar"</div>
+            </div>
+            <div className="visitas-kpi visitas-kpi--blue">
+              <div className="visitas-kpi__icon">🎯</div>
+              <div className="visitas-kpi__val">{conversion}%</div>
+              <div className="visitas-kpi__label">Conversión reservas</div>
+            </div>
+          </div>
+
+          {/* Daily bar chart */}
+          {data.daily.length > 0 && (
+            <div className="visitas-chart-wrap">
+              <h4>Visitas por día (últimos {Math.min(days, 14)} días)</h4>
+              <div className="visitas-chart">
+                {data.daily.map((d, i) => (
+                  <div key={i} className="visitas-bar-group">
+                    <div className="visitas-bars">
+                      <div className="visitas-bar visitas-bar--view"   style={{height: `${(d.page_view/maxDay)*100}%`}} title={`${d.page_view} visitas`}/>
+                      <div className="visitas-bar visitas-bar--reservar" style={{height: `${(d.click_reservar/maxDay)*100}%`}} title={`${d.click_reservar} reservar`}/>
+                      <div className="visitas-bar visitas-bar--llamar"   style={{height: `${(d.click_llamar/maxDay)*100}%`}} title={`${d.click_llamar} llamar`}/>
+                    </div>
+                    <div className="visitas-bar-label">{d.date.slice(5)}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="visitas-legend">
+                <span><span className="visitas-dot visitas-dot--view"/>Visitas</span>
+                <span><span className="visitas-dot visitas-dot--reservar"/>Reservar</span>
+                <span><span className="visitas-dot visitas-dot--llamar"/>Llamar</span>
+              </div>
+            </div>
+          )}
+
+          {/* Locations */}
+          {data.locations?.length > 0 && (
+            <div className="visitas-chart-wrap" style={{marginTop:'1rem'}}>
+              <h4>📍 Ubicación de visitantes</h4>
+              <div className="visitas-locations">
+                {data.locations.map((loc, i) => {
+                  const maxLoc = data.locations[0].visitors
+                  const pct    = Math.round((loc.visitors / maxLoc) * 100)
+                  const flag   = loc.countryCode
+                    ? `https://flagcdn.com/20x15/${loc.countryCode.toLowerCase()}.png`
+                    : null
+                  return (
+                    <div key={i} className="visitas-loc-row">
+                      <div className="visitas-loc-label">
+                        {flag && <img src={flag} alt={loc.countryCode} className="visitas-loc-flag"/>}
+                        <span>{loc.location}</span>
+                      </div>
+                      <div className="visitas-loc-bar-wrap">
+                        <div className="visitas-loc-bar" style={{width:`${pct}%`}}/>
+                      </div>
+                      <div className="visitas-loc-count">{loc.visitors}</div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+/* ══════════════════════════════════════════════════════════
    MAIN ADMIN PAGE
    ══════════════════════════════════════════════════════════ */
 export default function Admin() {
@@ -1068,6 +1198,9 @@ export default function Admin() {
           <button className={`admin-main-tab ${activeTab==='logs'?'admin-main-tab--active':''}`} onClick={()=>setActiveTab('logs')}>
             <RotateCcw size={14}/> Logs
           </button>
+          <button className={`admin-main-tab ${activeTab==='visitas'?'admin-main-tab--active':''}`} onClick={()=>setActiveTab('visitas')}>
+            <BarChart2 size={14}/> Visitas
+          </button>
         </div>
       </div>
 
@@ -1106,6 +1239,9 @@ export default function Admin() {
 
         {/* ── LOGS TAB ── */}
         {activeTab==='logs' && <LogsTab/>}
+
+        {/* ── VISITAS TAB ── */}
+        {activeTab==='visitas' && <VisitasTab/>}
 
       </div>
     </div>

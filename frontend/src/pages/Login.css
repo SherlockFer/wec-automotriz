@@ -27,7 +27,7 @@
 
 .login-card__bobby {
   font-family: var(--font-display);
-  font-size: 2rem;
+  font-size: 1.1rem;
   line-height: 1;
   color: var(--black);
   letter-spacing: 0.05em;

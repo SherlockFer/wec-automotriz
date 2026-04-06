@@ -163,6 +163,16 @@ user_cars = Table("user_cars", metadata,
     Column("created_at", DateTime, default=now_peru),
 )
 
+# Page analytics events (page views and CTA clicks)
+page_events = Table("page_events", metadata,
+    Column("id",         Integer, primary_key=True),
+    Column("event_type", String(50),  nullable=False),  # "page_view" | "click_reservar" | "click_llamar"
+    Column("page",       String(100), nullable=True),   # e.g. "home", "servicios"
+    Column("ip",         String(60),  nullable=True),
+    Column("user_agent", Text,        nullable=True),
+    Column("created_at", DateTime,    default=now_peru),
+)
+
 # Messages between users and admin
 messages_table = Table("messages", metadata,
     Column("id", Integer, primary_key=True),
@@ -372,9 +382,10 @@ async def shutdown():
 
 async def seed_default_users():
     defaults = [
-        {"name":"Super Admin","email":"superadmin@wecautomotriz.pe","password":"SuperBobby2024!","role":"superadmin"},
-        {"name":"Admin Bobby","email":"admin@wecautomotriz.pe","password":"AdminBobby2024!","role":"admin"},
-        {"name":"Usuario Demo","email":"user@wecautomotriz.pe","password":"UserBobby2024!","role":"user"},
+        {"name":"Super Admin","email":"superadmin@wecautomotriz.pe","password":"SuperWec2024!","role":"superadmin"},
+        {"name":"Wilmer","email":"wilmer@wecautomotriz.pe","password":"AdminWec2026!","role":"admin"},
+        {"name":"Angelica","email":"angelica@wecaurtomotriz.pe","password":"AdminWec2026!","role":"admin"},
+        {"name":"Usuario Demo","email":"user@wecautomotriz.pe","password":"UserWec2024!","role":"user"},
     ]
     for u in defaults:
         ex = await database.fetch_one(users_table.select().where(users_table.c.email == u["email"]))
@@ -418,7 +429,7 @@ def fmt_datetime(dt):
 
 def email_header():
     return f"""<div style="background:#073590;padding:24px 32px;color:white">
-      <h1 style="margin:0;font-size:26px;letter-spacing:2px">🔧 TALLERES BOBBY</h1>
+      <h1 style="margin:0;font-size:26px;letter-spacing:2px">🔧 WEC Taller Automotriz</h1>
       <p style="margin:4px 0 0;opacity:0.7;font-size:12px">MECÁNICA ESPECIALIZADA · AREQUIPA, PERÚ</p>
     </div><div style="height:4px;background:#F7C416"></div>"""
 
@@ -989,6 +1000,110 @@ async def garage_analytics(
              "approval_note": b.get("approval_note"), "booking_date": str(b["booking_date"])}
             for b in waiting_approval
         ],
+    }
+
+# ── Page analytics ───────────────────────────────────────────────────────────
+@app.post("/track")
+async def track_event(data: dict, request: Request):
+    """Public endpoint — records page views and CTA clicks from visitors."""
+    event_type = data.get("event_type", "")
+    if event_type not in ("page_view", "click_reservar", "click_llamar"):
+        return {"ok": False}
+    ip = request.headers.get("x-forwarded-for", request.client.host if request.client else None)
+    ua = request.headers.get("user-agent", "")
+    await database.execute(page_events.insert().values(
+        event_type=event_type,
+        page=data.get("page", ""),
+        ip=str(ip)[:60] if ip else None,
+        user_agent=ua[:500] if ua else None,
+        created_at=now_peru(),
+    ))
+    return {"ok": True}
+
+_geo_cache: dict = {}  # ip -> {"city": ..., "country": ..., "countryCode": ...}
+
+async def _resolve_locations(ips: list[str]) -> dict[str, dict]:
+    """Resolve a list of IPs to city/country using ip-api.com batch endpoint."""
+    unknown = [ip for ip in ips if ip not in _geo_cache]
+    if unknown:
+        try:
+            async with httpx.AsyncClient(timeout=5) as client:
+                # ip-api.com batch: max 100 per request
+                for i in range(0, len(unknown), 100):
+                    batch = unknown[i:i+100]
+                    resp = await client.post(
+                        "http://ip-api.com/batch",
+                        json=[{"query": ip, "fields": "query,city,country,countryCode,status"} for ip in batch],
+                    )
+                    if resp.status_code == 200:
+                        for item in resp.json():
+                            ip = item.get("query", "")
+                            if item.get("status") == "success":
+                                _geo_cache[ip] = {
+                                    "city": item.get("city", ""),
+                                    "country": item.get("country", ""),
+                                    "countryCode": item.get("countryCode", ""),
+                                }
+                            else:
+                                _geo_cache[ip] = {"city": "Desconocido", "country": "", "countryCode": ""}
+        except Exception:
+            pass
+    return _geo_cache
+
+@app.get("/admin/page-analytics")
+async def page_analytics(days: int = 30, user=Depends(require_admin)):
+    """Returns visit and CTA click counts for the admin panel."""
+    since = now_peru() - timedelta(days=days)
+    rows = await database.fetch_all(
+        page_events.select().where(page_events.c.created_at >= since).order_by(page_events.c.created_at.desc())
+    )
+    events = [dict(r) for r in rows]
+
+    # Totals
+    total_views    = sum(1 for e in events if e["event_type"] == "page_view")
+    total_reservar = sum(1 for e in events if e["event_type"] == "click_reservar")
+    total_llamar   = sum(1 for e in events if e["event_type"] == "click_llamar")
+
+    # Per-day breakdown (last 14 days for chart)
+    from collections import defaultdict
+    daily: dict = defaultdict(lambda: {"page_view": 0, "click_reservar": 0, "click_llamar": 0})
+    for e in events:
+        day = str(e["created_at"])[:10]
+        daily[day][e["event_type"]] += 1
+
+    # Sort days ascending
+    daily_list = [{"date": d, **v} for d, v in sorted(daily.items())][-14:]
+
+    # Unique IPs (rough unique visitors)
+    visitor_ips = list(set(e["ip"] for e in events if e["event_type"] == "page_view" and e["ip"]))
+    unique_ips  = len(visitor_ips)
+
+    # Geo-resolve unique visitor IPs
+    geo = await _resolve_locations(visitor_ips)
+    loc_counts: dict = defaultdict(int)
+    for ip in visitor_ips:
+        info = geo.get(ip, {})
+        city    = info.get("city", "") or ""
+        country = info.get("country", "") or ""
+        code    = info.get("countryCode", "") or ""
+        label   = f"{city}, {country}".strip(", ") or "Desconocido"
+        loc_counts[(label, code)] += 1
+
+    locations = [
+        {"location": label, "countryCode": code, "visitors": cnt}
+        for (label, code), cnt in sorted(loc_counts.items(), key=lambda x: -x[1])
+    ]
+
+    return {
+        "period_days": days,
+        "totals": {
+            "page_views":     total_views,
+            "click_reservar": total_reservar,
+            "click_llamar":   total_llamar,
+            "unique_visitors": unique_ips,
+        },
+        "daily":     daily_list,
+        "locations": locations,
     }
 
 # ── Progress ─────────────────────────────────────────────────────────────────

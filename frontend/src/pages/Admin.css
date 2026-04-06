@@ -342,7 +342,50 @@
   border-radius:0 3px 3px 0;
 }
 
+/* ══ Visitas Tab ══════════════════════════════════════════════════════════════ */
+.visitas-tab { padding: 1rem 0; }
+.visitas-header { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; margin-bottom:1.5rem; flex-wrap:wrap; }
+.visitas-header h3 { margin:0 0 0.25rem; font-size:1.1rem; color:var(--black); }
+.visitas-header p  { margin:0; font-size:0.85rem; color:#666; }
+.visitas-period { display:flex; gap:0.4rem; align-items:center; }
+.visitas-period-btn { padding:0.3rem 0.8rem; border:1px solid #dde5f5; border-radius:4px; background:#fff; color:#444; font-size:0.8rem; cursor:pointer; }
+.visitas-period-btn.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+
+.visitas-kpis { display:grid; grid-template-columns:repeat(5,1fr); gap:1rem; margin-bottom:2rem; }
+.visitas-kpi { background:#fff; border-radius:8px; padding:1.25rem 1rem; text-align:center; border:1px solid #e8eef8; }
+.visitas-kpi--accent { border-top:3px solid var(--accent); }
+.visitas-kpi--green  { border-top:3px solid #1a8a3a; }
+.visitas-kpi--blue   { border-top:3px solid var(--primary); }
+.visitas-kpi__icon  { font-size:1.5rem; margin-bottom:0.4rem; }
+.visitas-kpi__val   { font-size:1.8rem; font-weight:700; color:var(--black); line-height:1; }
+.visitas-kpi__label { font-size:0.75rem; color:#666; margin-top:0.3rem; }
+
+.visitas-chart-wrap { background:#fff; border-radius:8px; padding:1.25rem; border:1px solid #e8eef8; }
+.visitas-chart-wrap h4 { margin:0 0 1rem; font-size:0.9rem; color:#444; }
+.visitas-chart { display:flex; align-items:flex-end; gap:6px; height:140px; padding-bottom:1.5rem; position:relative; }
+.visitas-bar-group { display:flex; flex-direction:column; align-items:center; flex:1; height:100%; }
+.visitas-bars { display:flex; align-items:flex-end; gap:2px; height:100%; width:100%; }
+.visitas-bar { flex:1; border-radius:3px 3px 0 0; min-height:2px; transition:height 0.3s; cursor:default; }
+.visitas-bar--view     { background:#073590; opacity:0.7; }
+.visitas-bar--reservar { background:var(--accent); }
+.visitas-bar--llamar   { background:#1a8a3a; }
+.visitas-bar-label { font-size:0.65rem; color:#888; margin-top:4px; white-space:nowrap; }
+
+.visitas-legend { display:flex; gap:1.5rem; margin-top:0.75rem; font-size:0.8rem; color:#555; }
+.visitas-dot { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:4px; vertical-align:middle; }
+.visitas-dot--view     { background:#073590; opacity:0.7; }
+.visitas-dot--reservar { background:var(--accent); }
+.visitas-dot--llamar   { background:#1a8a3a; }
+
+.visitas-locations { display:flex; flex-direction:column; gap:0.5rem; margin-top:0.5rem; }
+.visitas-loc-row { display:grid; grid-template-columns:200px 1fr 36px; align-items:center; gap:0.75rem; font-size:0.82rem; }
+.visitas-loc-label { display:flex; align-items:center; gap:0.4rem; color:var(--black); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.visitas-loc-flag { border-radius:2px; flex-shrink:0; }
+.visitas-loc-bar-wrap { background:#e8eef8; border-radius:4px; height:8px; overflow:hidden; }
+.visitas-loc-bar { height:100%; background:var(--primary); border-radius:4px; transition:width 0.4s ease; opacity:0.75; }
+.visitas-loc-count { text-align:right; font-weight:700; color:var(--black); font-size:0.8rem; }
+
 @keyframes fadeInUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
 
-@media(max-width:1200px) { .kanban-board { grid-template-columns:repeat(4,minmax(180px,1fr)); } .kpi-grid { grid-template-columns:repeat(3,1fr); } }
-@media(max-width:768px) { .kanban-board { grid-template-columns:repeat(2,minmax(180px,1fr)); } .kpi-grid { grid-template-columns:repeat(2,1fr); } .admin-messages-panel { grid-template-columns:1fr; } .drawer { width:100%; top:64px; } }
+@media(max-width:1200px) { .kanban-board { grid-template-columns:repeat(4,minmax(180px,1fr)); } .kpi-grid { grid-template-columns:repeat(3,1fr); } .visitas-kpis { grid-template-columns:repeat(3,1fr); } }
+@media(max-width:768px) { .kanban-board { grid-template-columns:repeat(2,minmax(180px,1fr)); } .kpi-grid { grid-template-columns:repeat(2,1fr); } .admin-messages-panel { grid-template-columns:1fr; } .drawer { width:100%; top:64px; } .visitas-kpis { grid-template-columns:repeat(2,1fr); } }

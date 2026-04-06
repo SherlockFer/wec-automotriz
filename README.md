@@ -1,6 +1,6 @@
-# 🔧 Talleres Bobby — Sistema de Reservas Web
+# 🔧 WEC Taller Automotriz — Sistema de Reservas Web
 
-Sitio web completo para **Talleres Bobby**, taller mecánico especializado en Arequipa, Perú.
+Sitio web completo para **WEC Taller Automotriz**, taller mecánico especializado en Arequipa, Perú.
 
 ## Stack
 

@@ -30,17 +30,24 @@ export default function Login() {
     }
   }
 
+  const DEMO_USERS = [
+    { label: 'SuperAdmin', email: 'superadmin@wecautomotriz.pe', pw: 'SuperWec2024!', color: '#F7C416', text: '#073590' },
+    { label: 'Admin',      email: 'admin@wecautomotriz.pe',      pw: 'AdminWec2024!', color: '#073590', text: 'white' },
+    { label: 'Usuario',    email: 'user@wecautomotriz.pe',       pw: 'UserWec2024!',  color: '#f0f4ff', text: '#073590' },
+  ]
+
   return (
     <div className="login-page">
       <div className="login-card">
         <div className="login-card__header">
           <span className="login-card__icon">🔧</span>
           <div>
-            <div className="login-card__talleres-label">WEC</div><div className="login-card__bobby">TALLER AUTOMOTRIZ</div>
+            <div className="login-card__talleres-label">TALLERES</div><div className="login-card__bobby">BOBBY</div>
+            <div className="login-card__talleres">TALLERES</div>
           </div>
         </div>
 
-        <h2 className="login-card__title">Acceder al sistema</h2>
+        <h2 className="login-card__title">WEC Taller Automotriz</h2>
 
         {error && <div className="login-error"><AlertCircle size={16} /> {error}</div>}
 

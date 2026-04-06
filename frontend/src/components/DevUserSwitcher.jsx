@@ -9,8 +9,8 @@ const DEMO_ACCOUNTS = [
   {
     role: 'superadmin',
     label: 'Super Admin',
-    email: 'superadmin@talleresbobby.pe',
-    password: 'SuperBobby2024!',
+    email: 'superadmin@wecautomotriz.pe',
+    password: 'SuperWec2024!',
     icon: <Crown size={15}/>,
     color: 'white',
     bg: '#073590',
@@ -18,9 +18,9 @@ const DEMO_ACCOUNTS = [
   },
   {
     role: 'admin',
-    label: 'Admin Bobby',
-    email: 'admin@talleresbobby.pe',
-    password: 'AdminBobby2024!',
+    label: 'Admin WEC',
+    email: 'admin@wecautomotriz.pe',
+    password: 'AdminWec2024!',
     icon: <Shield size={15}/>,
     color: 'white',
     bg: '#052870',
@@ -29,7 +29,7 @@ const DEMO_ACCOUNTS = [
   {
     role: 'admin',
     label: 'Roberto (seed)',
-    email: 'roberto@talleresbobby.pe',
+    email: 'roberto@wecautomotriz.pe',
     password: 'Admin2024!',
     icon: <Shield size={15}/>,
     color: 'white',
@@ -39,7 +39,7 @@ const DEMO_ACCOUNTS = [
   {
     role: 'admin',
     label: 'Claudia (seed)',
-    email: 'claudia@talleresbobby.pe',
+    email: 'claudia@wecautomotriz.pe',
     password: 'Admin2024!',
     icon: <Shield size={15}/>,
     color: 'white',
@@ -49,8 +49,8 @@ const DEMO_ACCOUNTS = [
   {
     role: 'user',
     label: 'Usuario',
-    email: 'user@talleresbobby.pe',
-    password: 'UserBobby2024!',
+    email: 'user@wecautomotriz.pe',
+    password: 'UserWec2024!',
     icon: <User size={15}/>,
     color: '#073590',
     bg: '#e8f0ff',

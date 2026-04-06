@@ -1,13 +1,14 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Wrench, Shield, Clock, Star, ChevronRight, Phone, MessageCircle, Mail, Camera, CheckCircle, Calendar, FileText } from 'lucide-react'
+import { trackEvent } from '../api/index.js'
 import './Home.css'
 
 const IMAGES = {
   suspension: 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=600&q=80',
   brakes:     'https://images.unsplash.com/photo-1580274455191-1c62238fa333?w=600&q=80',
   alignment:  'https://images.unsplash.com/photo-1558980664-1db506751c6c?w=600&q=80',
-  oil:        'https://images.unsplash.com/photo-1635784063388-1ff0f8b23a0c?w=600&q=80',
+  oil:        'https://images.unsplash.com/photo-1632823471565-1ecdf5c6da36?w=600&q=80',
   hero:       'https://images.unsplash.com/photo-1530046339160-ce3e530c7d2f?w=1400&q=80',
   parts:      'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=700&q=80',
 }
@@ -34,6 +35,8 @@ const HOW_IT_WORKS = [
 ]
 
 export default function Home() {
+  useEffect(() => { trackEvent('page_view', 'home') }, [])
+
   return (
     <div className="home">
 
@@ -65,10 +68,10 @@ export default function Home() {
             </div>
 
             <div className="hero__actions animate-in" style={{animationDelay:'0.4s'}}>
-              <Link to="/reservar" className="btn-primary" style={{background:'var(--accent)',color:'var(--black)',clipPath:'none',borderRadius:'4px'}}>
+              <Link to="/reservar" className="btn-primary" style={{background:'var(--accent)',color:'var(--black)',clipPath:'none',borderRadius:'4px'}} onClick={()=>trackEvent('click_reservar','home')}>
                 Reservar Cita <ChevronRight size={16}/>
               </Link>
-              <a href="tel:959868604" className="btn-outline" style={{color:'white',borderColor:'rgba(255,255,255,0.5)'}}>
+              <a href="tel:959868604" className="btn-outline" style={{color:'white',borderColor:'rgba(255,255,255,0.5)'}} onClick={()=>trackEvent('click_llamar','home')}>
                 <Phone size={16}/> 959 868 604
               </a>
             </div>
@@ -114,7 +117,7 @@ export default function Home() {
             ))}
           </div>
           <div className="how-it-works__cta">
-            <Link to="/reservar" className="btn-primary" style={{background:'var(--accent)',color:'var(--black)',clipPath:'none',borderRadius:'4px',padding:'1rem 2.5rem',fontSize:'1.05rem'}}>
+            <Link to="/reservar" className="btn-primary" style={{background:'var(--accent)',color:'var(--black)',clipPath:'none',borderRadius:'4px',padding:'1rem 2.5rem',fontSize:'1.05rem'}} onClick={()=>trackEvent('click_reservar','home')}>
               Hacer mi reserva ahora <ChevronRight size={18}/>
             </Link>
           </div>
@@ -206,7 +209,7 @@ export default function Home() {
             </div>
           </div>
           <div className="home-cta__actions">
-            <Link to="/reservar" className="btn-primary" style={{background:'var(--accent)',color:'var(--black)',clipPath:'none',borderRadius:'4px'}}>
+            <Link to="/reservar" className="btn-primary" style={{background:'var(--accent)',color:'var(--black)',clipPath:'none',borderRadius:'4px'}} onClick={()=>trackEvent('click_reservar','home')}>
               Reservar en menos de 5 min <ChevronRight size={16}/>
             </Link>
             <div className="home-cta__info"><Clock size={16}/><span>Horarios: 9am, 2pm y 3pm</span></div>
