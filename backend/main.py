@@ -6,19 +6,15 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, field_validator
 from typing import Optional, List
 from datetime import date, datetime, timedelta, timezone
-import databases, sqlalchemy, os, threading, httpx, smtplib, re, bcrypt, json, random, secrets
+import databases, sqlalchemy, os, threading, httpx, re, bcrypt, json, random, secrets
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, Date, DateTime, Boolean, Text
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 import jwt
 
 # ── Config ────────────────────────────────────────────────────────────────────
 DATABASE_URL     = os.getenv("DATABASE_URL", "postgresql://bobby:bobby123@localhost/talleresboby")
-SMTP_HOST        = os.getenv("SMTP_HOST", "smtp.gmail.com")
-SMTP_PORT        = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER        = os.getenv("SMTP_USER", "")
-SMTP_PASS        = os.getenv("SMTP_PASS", "")
 NOTIFY_EMAIL     = os.getenv("NOTIFY_EMAIL", "")
+RESEND_API_KEY   = os.getenv("RESEND_API_KEY", "")
 HCAPTCHA_SECRET  = os.getenv("HCAPTCHA_SECRET",  "")
 HCAPTCHA_SITEKEY = os.getenv("HCAPTCHA_SITEKEY", "")
 JWT_SECRET       = os.getenv("JWT_SECRET", "change-me-in-production")
@@ -530,15 +526,23 @@ def email_footer():
     </div>"""
 
 def send_email(to, subject, html_body):
-    if not SMTP_USER or not SMTP_PASS: return
+    if not RESEND_API_KEY:
+        print("❌ Email error: RESEND_API_KEY not set")
+        return
     try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject; msg["From"] = SMTP_USER; msg["To"] = to
-        msg.attach(MIMEText(html_body, "html"))
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as s:
-            s.starttls(); s.login(SMTP_USER, SMTP_PASS); s.sendmail(SMTP_USER, to, msg.as_string())
-        print(f"✅ Email → {to}")
-    except Exception as e: print(f"❌ Email error: {e}")
+        import httpx as _httpx
+        r = _httpx.post(
+            "https://api.resend.com/emails",
+            headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"},
+            json={"from": "WEC Taller Automotriz <onboarding@resend.dev>", "to": [to], "subject": subject, "html": html_body},
+            timeout=10,
+        )
+        if r.status_code in (200, 201):
+            print(f"✅ Email → {to}")
+        else:
+            print(f"❌ Email error: {r.status_code} {r.text}")
+    except Exception as e:
+        print(f"❌ Email error: {e}")
 
 def wa_link(phone: str, message: str) -> str:
     """Generate a WhatsApp wa.me link (works without API key)."""
