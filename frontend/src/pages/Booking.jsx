@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react'
 import {
   CheckCircle, AlertCircle, ChevronLeft, ChevronRight,
-  Clock, Calendar, User, Phone, Mail, FileText
+  Clock, Calendar, User, Phone, Mail, FileText, ShieldCheck
 } from 'lucide-react'
-import { getAvailability, createBooking } from '../api/index.js'
+import { getAvailability, createBooking, sendVerifyCode, confirmVerifyCode } from '../api/index.js'
 import { extractError } from '../api/errors.js'
 import './Booking.css'
 
@@ -92,6 +92,18 @@ export default function Booking() {
   const [submitting,setSubmitting]= useState(false)
   const [error,     setError]     = useState('')
 
+  // Contact verification
+  const [prefContact,    setPrefContact]    = useState('phone') // 'phone'|'email'|'both'
+  const [phoneCodeSent,  setPhoneCodeSent]  = useState(false)
+  const [emailCodeSent,  setEmailCodeSent]  = useState(false)
+  const [phoneCode,      setPhoneCode]      = useState('')
+  const [emailCode,      setEmailCode]      = useState('')
+  const [phoneVerified,  setPhoneVerified]  = useState(false)
+  const [emailVerified,  setEmailVerified]  = useState(false)
+  const [sendingPhone,   setSendingPhone]   = useState(false)
+  const [sendingEmail,   setSendingEmail]   = useState(false)
+  const [verifyError,    setVerifyError]    = useState('')
+
   /* Load availability dots for visible month */
   useEffect(() => {
     const yr = month.getFullYear()
@@ -144,6 +156,47 @@ export default function Booking() {
       .finally(() => setLoadAvail(false))
   }
 
+  /* Verification helpers */
+  function needsPhoneVerify() { return prefContact === 'phone' || prefContact === 'both' }
+  function needsEmailVerify() { return prefContact === 'email' || prefContact === 'both' }
+  function isVerified() {
+    if (needsPhoneVerify() && !phoneVerified) return false
+    if (needsEmailVerify() && !emailVerified) return false
+    return true
+  }
+
+  async function handleSendCode(type) {
+    const value = type === 'phone' ? form.phone : form.email
+    if (!value) { setVerifyError(`Ingresa tu ${type === 'phone' ? 'teléfono' : 'correo'} primero`); return }
+    if (type === 'phone') {
+      const clean = value.replace(/[\s\-\(\)\+]/g, '')
+      if (!/^\d{7,15}$/.test(clean)) { setVerifyError('Número de teléfono inválido'); return }
+    }
+    setVerifyError('')
+    type === 'phone' ? setSendingPhone(true) : setSendingEmail(true)
+    try {
+      await sendVerifyCode(type, value)
+      type === 'phone' ? setPhoneCodeSent(true) : setEmailCodeSent(true)
+    } catch(e) {
+      setVerifyError(e?.response?.data?.detail || `No se pudo enviar el código`)
+    } finally {
+      type === 'phone' ? setSendingPhone(false) : setSendingEmail(false)
+    }
+  }
+
+  async function handleConfirmCode(type) {
+    const value = type === 'phone' ? form.phone : form.email
+    const code  = type === 'phone' ? phoneCode : emailCode
+    if (!code) { setVerifyError('Ingresa el código'); return }
+    setVerifyError('')
+    try {
+      await confirmVerifyCode(type, value, code)
+      type === 'phone' ? setPhoneVerified(true) : setEmailVerified(true)
+    } catch(e) {
+      setVerifyError(e?.response?.data?.detail || 'Código incorrecto')
+    }
+  }
+
   /* Submit booking */
   async function submit(e) {
     e.preventDefault()
@@ -151,10 +204,17 @@ export default function Booking() {
       setError('Por favor completa los campos obligatorios.')
       return
     }
-    // Client-side phone validation (mirrors backend)
     const cleanPhone = form.phone.replace(/[\s\-\(\)\+]/g, '')
     if (!/^\d{7,15}$/.test(cleanPhone)) {
       setError('Número de teléfono inválido. Ingresa entre 7 y 15 dígitos (ej: 987654321).')
+      return
+    }
+    if (needsEmailVerify() && !form.email) {
+      setError('Ingresa tu correo para verificarlo.')
+      return
+    }
+    if (!isVerified()) {
+      setError('Por favor verifica tu medio de contacto antes de continuar.')
       return
     }
     if (!token) {
@@ -371,17 +431,90 @@ export default function Booking() {
                   <input type="text" placeholder="Juan Pérez"
                     value={form.name} onChange={e=>setForm({...form,name:e.target.value})} required/>
                 </div>
+
+                {/* Preferred contact */}
                 <div className="form-group">
-                  <label><Phone size={13}/> Teléfono *</label>
-                  <input type="tel" placeholder="987 654 321"
-                    value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} required/>
-                  <span className="form-hint">📱 Celular peruano: 9 dígitos comenzando en 9</span>
+                  <label>¿Cómo prefieres que te contactemos? *</label>
+                  <div className="verify-contact-options">
+                    {[['phone','📱 WhatsApp / Teléfono'],['email','📧 Correo electrónico'],['both','Ambos']].map(([v,l])=>(
+                      <label key={v} className={`verify-contact-option ${prefContact===v?'active':''}`}>
+                        <input type="radio" name="prefContact" value={v} checked={prefContact===v}
+                          onChange={()=>{ setPrefContact(v); setPhoneVerified(false); setEmailVerified(false); setPhoneCodeSent(false); setEmailCodeSent(false); setPhoneCode(''); setEmailCode(''); setVerifyError('') }}/>
+                        {l}
+                      </label>
+                    ))}
+                  </div>
                 </div>
-                <div className="form-group">
-                  <label><Mail size={13}/> Correo (opcional — para recibir actualizaciones)</label>
-                  <input type="email" placeholder="correo@ejemplo.com"
-                    value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/>
-                </div>
+
+                {/* Phone field + verification */}
+                {(prefContact === 'phone' || prefContact === 'both') && (
+                  <div className="form-group">
+                    <label><Phone size={13}/> Teléfono / WhatsApp *</label>
+                    <div className="verify-input-row">
+                      <input type="tel" placeholder="987 654 321"
+                        value={form.phone} onChange={e=>{ setForm({...form,phone:e.target.value}); setPhoneVerified(false); setPhoneCodeSent(false); setPhoneCode('') }}
+                        disabled={phoneVerified}/>
+                      {phoneVerified
+                        ? <span className="verify-badge verify-badge--ok"><CheckCircle size={13}/> Verificado</span>
+                        : <button type="button" className="verify-send-btn" disabled={sendingPhone} onClick={()=>handleSendCode('phone')}>
+                            {sendingPhone ? 'Enviando…' : phoneCodeSent ? 'Reenviar' : 'Enviar código'}
+                          </button>
+                      }
+                    </div>
+                    <span className="form-hint">📱 Recibirás un mensaje de WhatsApp con un código</span>
+                    {phoneCodeSent && !phoneVerified && (
+                      <div className="verify-code-row">
+                        <input type="text" inputMode="numeric" maxLength={6} placeholder="Código de 6 dígitos"
+                          value={phoneCode} onChange={e=>setPhoneCode(e.target.value.replace(/\D/,''))}/>
+                        <button type="button" className="verify-confirm-btn" onClick={()=>handleConfirmCode('phone')}>
+                          Confirmar
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Email field + verification */}
+                {(prefContact === 'email' || prefContact === 'both') && (
+                  <div className="form-group">
+                    <label><Mail size={13}/> Correo electrónico *</label>
+                    <div className="verify-input-row">
+                      <input type="email" placeholder="correo@ejemplo.com"
+                        value={form.email} onChange={e=>{ setForm({...form,email:e.target.value}); setEmailVerified(false); setEmailCodeSent(false); setEmailCode('') }}
+                        disabled={emailVerified}/>
+                      {emailVerified
+                        ? <span className="verify-badge verify-badge--ok"><CheckCircle size={13}/> Verificado</span>
+                        : <button type="button" className="verify-send-btn" disabled={sendingEmail} onClick={()=>handleSendCode('email')}>
+                            {sendingEmail ? 'Enviando…' : emailCodeSent ? 'Reenviar' : 'Enviar código'}
+                          </button>
+                      }
+                    </div>
+                    <span className="form-hint">📧 Te enviaremos un código al correo para verificarlo</span>
+                    {emailCodeSent && !emailVerified && (
+                      <div className="verify-code-row">
+                        <input type="text" inputMode="numeric" maxLength={6} placeholder="Código de 6 dígitos"
+                          value={emailCode} onChange={e=>setEmailCode(e.target.value.replace(/\D/,''))}/>
+                        <button type="button" className="verify-confirm-btn" onClick={()=>handleConfirmCode('email')}>
+                          Confirmar
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Phone optional when email-only */}
+                {prefContact === 'email' && (
+                  <div className="form-group">
+                    <label><Phone size={13}/> Teléfono (opcional)</label>
+                    <input type="tel" placeholder="987 654 321"
+                      value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/>
+                  </div>
+                )}
+
+                {verifyError && (
+                  <div className="booking-error"><AlertCircle size={13}/> {verifyError}</div>
+                )}
+
                 <div className="form-group">
                   <label>Servicio *</label>
                   <select value={form.service} onChange={e=>setForm({...form,service:e.target.value})} required>
@@ -403,10 +536,15 @@ export default function Booking() {
                 <button
                   type="submit"
                   className="booking-submit"
-                  disabled={submitting || !token}
+                  disabled={submitting || !token || !isVerified()}
                 >
                   {submitting ? 'Enviando…' : '✅ Confirmar Reserva'}
                 </button>
+                {!isVerified() && (
+                  <p className="form-hint" style={{textAlign:'center',marginTop:'0.5rem'}}>
+                    ⚠️ Verifica tu {prefContact==='both'?'teléfono y correo':prefContact==='phone'?'teléfono':'correo'} para continuar
+                  </p>
+                )}
               </form>
             </div>
           )}

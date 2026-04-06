@@ -24,7 +24,12 @@ export const getBookingStats    = ()       => API.get('/admin/bookings/stats')
 export const updateBookingStatus = (id, status, approvalNote, email, wa, approvalComment) =>
   API.patch(`/bookings/${id}/status`, { status, approval_note: approvalNote || null, approval_comment: approvalComment || null }, { params: { notify_email: email, notify_wa: wa } })
 export const updateCarProfile   = (id, data) => API.patch(`/bookings/${id}/car-profile`, data)
+export const updateBookingClient= (id, data) => API.patch(`/bookings/${id}/client`, data)
 export const cancelBooking      = (id)       => API.patch(`/bookings/${id}/cancel`)
+
+// Contact verification
+export const sendVerifyCode    = (type, value) => API.post('/verify/send', { type, value })
+export const confirmVerifyCode = (type, value, code) => API.post('/verify/confirm', { type, value, code })
 export const setCapacity        = (data)     => API.post('/admin/capacity', data)
 
 // WhatsApp

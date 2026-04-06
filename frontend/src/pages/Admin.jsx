@@ -12,7 +12,7 @@ import {
   cancelBooking, setCapacity, getWaLink, uploadReceptionImage, getProgress,
   getAdminUsers, adminGetMessages, adminReplyMessage, adminUnreadCount,
   getAuditLogs, undoAction, redoAction, getAnalytics, getApprovalHistory, getWorkflowHistory,
-  getPageAnalytics
+  getPageAnalytics, updateBookingClient
 } from '../api/index.js'
 import { useAuth } from '../context/AuthContext'
 import './Admin.css'
@@ -130,6 +130,62 @@ function ApprovalModal({ booking, onSave, onClose }) {
           <button className="btn-primary" style={{background:'#1a8a3a',color:'white',clipPath:'none',borderRadius:'4px'}}
             onClick={()=>onSave(buildComment(), sendEmail, sendWA)}>
             <CheckCircle size={14}/> Confirmar aprobación
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ── ClientEditModal ── */
+function ClientEditModal({ booking, onSave, onClose }) {
+  const [form, setForm] = useState({
+    client_name:  booking.client_name  || '',
+    client_phone: booking.client_phone || '',
+    client_email: booking.client_email || '',
+  })
+  const [saving, setSaving] = useState(false)
+  const [error,  setError]  = useState('')
+
+  const save = async () => {
+    if (!form.client_name.trim()) { setError('El nombre es obligatorio'); return }
+    if (!form.client_phone.trim()) { setError('El teléfono es obligatorio'); return }
+    setSaving(true)
+    try {
+      await onSave(form)
+    } catch(e) {
+      setError(extractError(e, 'Error al guardar'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth:'440px'}}>
+        <div className="modal-header">
+          <h3>👤 Editar datos del cliente</h3>
+          <button className="modal-close" onClick={onClose}><X size={18}/></button>
+        </div>
+        <div className="modal-body">
+          {error && <div className="modal-error"><AlertCircle size={13}/> {error}</div>}
+          <div className="form-row">
+            <label>Nombre completo *</label>
+            <input value={form.client_name} onChange={e=>setForm({...form,client_name:e.target.value})} placeholder="Juan Pérez"/>
+          </div>
+          <div className="form-row">
+            <label><Phone size={12}/> Teléfono *</label>
+            <input value={form.client_phone} onChange={e=>setForm({...form,client_phone:e.target.value})} placeholder="987654321"/>
+          </div>
+          <div className="form-row">
+            <label><Mail size={12}/> Correo</label>
+            <input type="email" value={form.client_email} onChange={e=>setForm({...form,client_email:e.target.value})} placeholder="correo@ejemplo.com"/>
+          </div>
+        </div>
+        <div className="modal-footer">
+          <button className="modal-btn-secondary" onClick={onClose}>Cancelar</button>
+          <button className="modal-btn-primary" onClick={save} disabled={saving}>
+            {saving ? 'Guardando…' : '💾 Guardar'}
           </button>
         </div>
       </div>
@@ -348,6 +404,7 @@ function KanbanColumn({ status, bookings, onDrop, onDragOver, onCardClick }) {
 
 /* Booking detail drawer */
 function BookingDrawer({ booking, onClose, onStatusChange, onRefresh }) {
+  const [showClientModal,  setShowClientModal]  = useState(false)
   const [showCarModal,     setShowCarModal]     = useState(false)
   const [showApprovalModal,setShowApprovalModal] = useState(false)
   const [showRequireApprovalModal, setShowRequireApprovalModal] = useState(false)
@@ -425,6 +482,13 @@ function BookingDrawer({ booking, onClose, onStatusChange, onRefresh }) {
     refreshHistory(); onRefresh()
   }
 
+  const handleClientSave = async (form) => {
+    await updateBookingClient(booking.id, form)
+    flash('✅ Datos del cliente actualizados')
+    setShowClientModal(false)
+    onRefresh()
+  }
+
   const handleCarSave = async (form) => {
     await updateCarProfile(booking.id, form)
     flash('✅ Perfil guardado')
@@ -438,19 +502,26 @@ function BookingDrawer({ booking, onClose, onStatusChange, onRefresh }) {
 
   return (
     <>
-      {showRequireApprovalModal && <RequireApprovalModal booking={booking} onSave={handleRequireSave} onClose={()=>setShowRequireApprovalModal(false)}/>} 
-       {showCarModal      && <CarProfileModal booking={booking} onSave={handleCarSave} onClose={()=>setShowCarModal(false)}/>} 
-       {showApprovalModal && <ApprovalModal   booking={booking} onSave={handleApprovalSave} onClose={()=>setShowApprovalModal(false)}/>} 
+      {showClientModal   && <ClientEditModal  booking={booking} onSave={handleClientSave} onClose={()=>setShowClientModal(false)}/>}
+      {showRequireApprovalModal && <RequireApprovalModal booking={booking} onSave={handleRequireSave} onClose={()=>setShowRequireApprovalModal(false)}/>}
+      {showCarModal      && <CarProfileModal booking={booking} onSave={handleCarSave} onClose={()=>setShowCarModal(false)}/>}
+      {showApprovalModal && <ApprovalModal   booking={booking} onSave={handleApprovalSave} onClose={()=>setShowApprovalModal(false)}/>} 
       <div className="drawer-overlay" onClick={onClose}/>
       <div className="drawer">
         <div className="drawer-header">
           <div>
             <StatusBadge status={booking.status}/>
-            <h2 className="drawer-name">{booking.client_name}</h2>
+            <div style={{display:'flex',alignItems:'center',gap:'0.5rem'}}>
+              <h2 className="drawer-name">{booking.client_name}</h2>
+              <button className="detail-edit-btn" onClick={()=>setShowClientModal(true)} title="Editar datos del cliente">
+                <Edit3 size={12}/> Editar
+              </button>
+            </div>
             <div className="drawer-meta">
               <span><Calendar size={12}/> {booking.booking_date} · {booking.time_slot} hrs</span>
               <span>🔧 {booking.service}</span>
               {booking.client_phone && <span><Phone size={12}/> {booking.client_phone}</span>}
+              {booking.client_email && <span><Mail size={12}/> {booking.client_email}</span>}
             </div>
           </div>
           <button className="drawer-close" onClick={onClose}><X size={20}/></button>

@@ -6,7 +6,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, field_validator
 from typing import Optional, List
 from datetime import date, datetime, timedelta, timezone
-import databases, sqlalchemy, os, threading, httpx, smtplib, re, bcrypt, json, random
+import databases, sqlalchemy, os, threading, httpx, smtplib, re, bcrypt, json, random, secrets
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, Date, DateTime, Boolean, Text
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -223,6 +223,7 @@ class BookingCreate(BaseModel):
     time_slot: str
     notes: Optional[str] = None
     captcha_token: str
+    verified_token: Optional[str] = None  # contact verification token
 
     @field_validator("client_phone")
     @classmethod
@@ -270,6 +271,20 @@ class CarProfileUpdate(BaseModel):
     car_km:    Optional[int] = None
     failure_desc:    Optional[str] = None
     reception_notes: Optional[str] = None
+
+class ClientUpdate(BaseModel):
+    client_name:  Optional[str] = None
+    client_phone: Optional[str] = None
+    client_email: Optional[str] = None
+
+    @field_validator("client_phone")
+    @classmethod
+    def validate_phone(cls, v):
+        if v is None: return v
+        cleaned = re.sub(r"[\s\-\(\)\+]", "", v)
+        if not re.match(r"^\d{7,15}$", cleaned):
+            raise ValueError("Número de teléfono inválido.")
+        return cleaned
 
 class DayAvailability(BaseModel):
     booking_date: date
@@ -394,6 +409,80 @@ async def seed_default_users():
                 name=u["name"], email=u["email"], password_hash=hash_password(u["password"]),
                 role=u["role"], is_active=True, created_at=now_peru()
             ))
+
+# ── Contact Verification ──────────────────────────────────────────────────────
+# In-memory store: key="email:addr" or "phone:num" → {code, expires, verified_token}
+_verify_store: dict = {}
+_VERIFY_TTL = timedelta(minutes=15)
+
+def _verify_key(type_: str, value: str) -> str:
+    return f"{type_}:{value.strip().lower()}"
+
+def _send_verify_email(to: str, code: str):
+    if not SMTP_USER or not SMTP_PASS:
+        raise HTTPException(503, "Servicio de email no configurado")
+    html = f"""{email_header()}
+    <div style="padding:32px;font-family:sans-serif">
+      <h2 style="color:#073590">Código de verificación</h2>
+      <p>Usa este código para verificar tu correo en WEC Taller Automotriz:</p>
+      <div style="font-size:36px;font-weight:bold;letter-spacing:8px;color:#073590;margin:24px 0">{code}</div>
+      <p style="color:#888;font-size:13px">Válido por 15 minutos. Si no solicitaste esto, ignora este mensaje.</p>
+    </div>{email_footer()}"""
+    send_email(to, "Código de verificación — WEC Taller Automotriz", html)
+
+def _send_verify_whatsapp(phone: str, code: str):
+    if not TWILIO_SID or not TWILIO_TOKEN or not TWILIO_WA_FROM:
+        raise HTTPException(503, "Verificación por WhatsApp no disponible. Usa verificación por email.")
+    from twilio.rest import Client as TwilioClient
+    client = TwilioClient(TWILIO_SID, TWILIO_TOKEN)
+    to = f"whatsapp:+{phone}" if not phone.startswith("+") else f"whatsapp:{phone}"
+    client.messages.create(
+        from_=TWILIO_WA_FROM,
+        to=to,
+        body=f"🔧 WEC Taller Automotriz\nTu código de verificación es: *{code}*\nVálido por 15 minutos."
+    )
+
+@app.post("/verify/send")
+async def verify_send(data: dict):
+    type_ = data.get("type", "")   # "email" | "phone"
+    value = data.get("value", "").strip()
+    if type_ not in ("email", "phone") or not value:
+        raise HTTPException(400, "Parámetros inválidos")
+    if type_ == "phone":
+        cleaned = re.sub(r"[\s\-\(\)\+]", "", value)
+        if not re.match(r"^\d{7,15}$", cleaned):
+            raise HTTPException(400, "Número de teléfono inválido")
+        value = cleaned
+    code = str(random.randint(100000, 999999))
+    key  = _verify_key(type_, value)
+    _verify_store[key] = {"code": code, "expires": now_peru() + _VERIFY_TTL, "verified_token": None}
+    if type_ == "email":
+        threading.Thread(target=_send_verify_email, args=(value, code), daemon=True).start()
+    else:
+        threading.Thread(target=_send_verify_whatsapp, args=(value, code), daemon=True).start()
+    return {"ok": True, "message": f"Código enviado a {type_}"}
+
+@app.post("/verify/confirm")
+async def verify_confirm(data: dict):
+    type_  = data.get("type", "")
+    value  = data.get("value", "").strip()
+    code   = str(data.get("code", "")).strip()
+    if not type_ or not value or not code:
+        raise HTTPException(400, "Parámetros inválidos")
+    if type_ == "phone":
+        value = re.sub(r"[\s\-\(\)\+]", "", value)
+    key  = _verify_key(type_, value)
+    entry = _verify_store.get(key)
+    if not entry:
+        raise HTTPException(400, "No se encontró ningún código enviado. Solicita uno nuevo.")
+    if now_peru() > entry["expires"]:
+        _verify_store.pop(key, None)
+        raise HTTPException(400, "Código expirado. Solicita uno nuevo.")
+    if entry["code"] != code:
+        raise HTTPException(400, "Código incorrecto")
+    token = secrets.token_urlsafe(32)
+    _verify_store[key]["verified_token"] = token
+    return {"ok": True, "verified_token": token}
 
 def get_slots_for_date(d: date):
     w = d.weekday()
@@ -798,6 +887,18 @@ async def cancel_booking(bid: int, user=Depends(require_admin)):
     if not await database.fetch_one(bookings.select().where(bookings.c.id == bid)): raise HTTPException(404, "No encontrado")
     await database.execute(bookings.update().where(bookings.c.id == bid).values(status="cancelled"))
     return {"message": "Cancelado"}
+
+@app.patch("/bookings/{bid}/client", response_model=BookingOut)
+async def update_booking_client(bid: int, data: ClientUpdate, user=Depends(require_admin)):
+    row = await database.fetch_one(bookings.select().where(bookings.c.id == bid))
+    if not row: raise HTTPException(404, "No encontrada")
+    vals = {k: v for k, v in data.dict().items() if v is not None}
+    if not vals: raise HTTPException(400, "Nada que actualizar")
+    await database.execute(bookings.update().where(bookings.c.id == bid).values(**vals))
+    updated = dict(await database.fetch_one(bookings.select().where(bookings.c.id == bid)))
+    await log_action(user, "edit_client", f"Datos del cliente actualizados en reserva #{bid}",
+                     entity_type="booking", entity_id=bid)
+    return BookingOut(**_parse_booking(updated))
 
 @app.post("/admin/capacity")
 async def set_capacity(data: AdminCapacity, user=Depends(require_admin)):

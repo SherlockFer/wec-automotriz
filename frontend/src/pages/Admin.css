@@ -4,13 +4,15 @@
 .admin-layout { padding: 1.5rem 2rem; }
 
 /* ══ Main tabs ══════════════════════════════════════════════════════════════ */
-.admin-main-tabs { display:flex; gap:0; margin-top:1.5rem; border-top:1px solid rgba(255,255,255,0.1); }
+.admin-main-tabs { display:flex; gap:0; margin-top:1.5rem; border-top:1px solid rgba(255,255,255,0.1); overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; flex-shrink:0; }
+.admin-main-tabs::-webkit-scrollbar { display:none; }
 .admin-main-tab {
   display:flex; align-items:center; gap:0.45rem;
   padding:0.75rem 1.25rem; border:none; background:rgba(255,255,255,0.06);
   color:rgba(255,255,255,0.55); font-family:var(--font-condensed); font-size:0.85rem;
   font-weight:700; letter-spacing:0.08em; cursor:pointer;
   border-bottom:3px solid transparent; transition:all 0.2s; position:relative;
+  white-space:nowrap; flex-shrink:0;
 }
 .admin-main-tab:hover { color:white; background:rgba(255,255,255,0.1); }
 .admin-main-tab--active { color:var(--accent); border-bottom-color:var(--accent); background:rgba(247,196,22,0.08); }
