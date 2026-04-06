@@ -13,7 +13,7 @@ import jwt
 # ── Config ────────────────────────────────────────────────────────────────────
 DATABASE_URL     = os.getenv("DATABASE_URL", "postgresql://bobby:bobby123@localhost/talleresboby")
 SMTP_USER        = os.getenv("SMTP_USER", "")
-NOTIFY_EMAIL     = os.getenv("NOTIFY_EMAIL", "")
+NOTIFY_EMAIL     = os.getenv("NOTIFY_EMAIL", "fermin.aguilar.b@gmail.com,wilmeraguilar132002@gmail.com")
 RESEND_API_KEY   = os.getenv("RESEND_API_KEY", "")
 HCAPTCHA_SECRET  = os.getenv("HCAPTCHA_SECRET",  "")
 HCAPTCHA_SITEKEY = os.getenv("HCAPTCHA_SITEKEY", "")
@@ -628,22 +628,27 @@ def send_admin_notification(b):
     html = f"""<html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f5f7ff">
       {email_header()}
       <div style="padding:24px 32px">
-        <h2 style="color:#073590;margin:0 0 16px">Nueva reserva — {STATUS_EMOJIS.get('requested','📋')} Solicitada</h2>
+        <div style="background:#fff3cd;border:1px solid #F7C416;border-radius:4px;padding:14px 18px;margin-bottom:20px">
+          <strong style="color:#073590;font-size:1rem">⚠️ Se ha realizado una nueva reserva en la app WEC Automotriz — requiere tu atención.</strong>
+        </div>
+        <h2 style="color:#073590;margin:0 0 16px">📋 Nueva Reserva Solicitada</h2>
         <table style="width:100%;border-collapse:collapse;background:white;border:1px solid #dde5f5">
           <tr><td style="padding:10px 14px;border-bottom:1px solid #eef2fb;color:#073590;font-weight:bold;width:38%">Cliente</td><td style="padding:10px 14px;border-bottom:1px solid #eef2fb">{b['client_name']}</td></tr>
           <tr><td style="padding:10px 14px;border-bottom:1px solid #eef2fb;color:#073590;font-weight:bold">Teléfono</td><td style="padding:10px 14px;border-bottom:1px solid #eef2fb">{b['client_phone']}</td></tr>
           <tr><td style="padding:10px 14px;border-bottom:1px solid #eef2fb;color:#073590;font-weight:bold">Email</td><td style="padding:10px 14px;border-bottom:1px solid #eef2fb">{b.get('client_email') or '—'}</td></tr>
           <tr><td style="padding:10px 14px;border-bottom:1px solid #eef2fb;color:#073590;font-weight:bold">Fecha</td><td style="padding:10px 14px;border-bottom:1px solid #eef2fb">{fmt_date(str(b['booking_date']))} · {b['time_slot']} hrs</td></tr>
           <tr><td style="padding:10px 14px;border-bottom:1px solid #eef2fb;color:#073590;font-weight:bold">Servicio</td><td style="padding:10px 14px;border-bottom:1px solid #eef2fb">{b['service']}</td></tr>
-          <tr><td style="padding:10px 14px;color:#5a6a8a;font-size:12px">Creado</td><td style="padding:10px 14px;color:#5a6a8a;font-size:12px">{fmt_datetime(created)}</td></tr>
+          <tr><td style="padding:10px 14px;color:#5a6a8a;font-size:12px">Registrado</td><td style="padding:10px 14px;color:#5a6a8a;font-size:12px">{fmt_datetime(created)}</td></tr>
         </table>
-        <div style="margin-top:16px;text-align:center">
-          <a href="{SITE_URL}/admin" style="display:inline-block;background:#073590;color:white;padding:10px 24px;text-decoration:none;font-weight:bold">Ver en Admin →</a>
+        <div style="margin-top:20px;text-align:center">
+          <a href="{SITE_URL}/admin" style="display:inline-block;background:#073590;color:white;padding:12px 28px;text-decoration:none;font-weight:bold;border-radius:4px">Ver en Admin →</a>
         </div>
       </div>
       {email_footer()}
     </body></html>"""
-    send_email(NOTIFY_EMAIL, f"📋 Nueva Reserva Solicitada — {b['client_name']} · {b['booking_date']}", html)
+    recipients = [e.strip() for e in NOTIFY_EMAIL.split(",") if e.strip()]
+    for recipient in recipients:
+        send_email(recipient, f"⚠️ Nueva Reserva — {b['client_name']} · {b['booking_date']} · WEC Automotriz", html)
 
 def send_customer_confirmation(b):
     if not b.get("client_email"): return
