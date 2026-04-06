@@ -384,7 +384,7 @@ async def seed_default_users():
     defaults = [
         {"name":"Super Admin","email":"superadmin@wecautomotriz.pe","password":"SuperWec2024!","role":"superadmin"},
         {"name":"Wilmer","email":"wilmer@wecautomotriz.pe","password":"AdminWec2026!","role":"admin"},
-        {"name":"Angelica","email":"angelica@wecaurtomotriz.pe","password":"AdminWec2026!","role":"admin"},
+        {"name":"Angelica","email":"angelica@wecautomotriz.pe","password":"AdminWec2026!","role":"admin"},
         {"name":"Usuario Demo","email":"user@wecautomotriz.pe","password":"UserWec2024!","role":"user"},
     ]
     for u in defaults:
