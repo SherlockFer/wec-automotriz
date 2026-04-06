@@ -1069,6 +1069,52 @@ function VisitasTab() {
               </div>
             </div>
           )}
+
+          {/* Devices & Browsers */}
+          {(data.devices?.length > 0 || data.browsers?.length > 0) && (
+            <div style={{display:'flex',gap:'1rem',marginTop:'1rem',flexWrap:'wrap'}}>
+              {data.devices?.length > 0 && (
+                <div className="visitas-chart-wrap" style={{flex:1,minWidth:'200px'}}>
+                  <h4>📱 Dispositivos</h4>
+                  <div className="visitas-locations">
+                    {data.devices.map((d, i) => {
+                      const max = data.devices[0].visits
+                      const pct = Math.round((d.visits / max) * 100)
+                      return (
+                        <div key={i} className="visitas-loc-row">
+                          <div className="visitas-loc-label"><span>{d.device}</span></div>
+                          <div className="visitas-loc-bar-wrap">
+                            <div className="visitas-loc-bar" style={{width:`${pct}%`}}/>
+                          </div>
+                          <div className="visitas-loc-count">{d.visits}</div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+              {data.browsers?.length > 0 && (
+                <div className="visitas-chart-wrap" style={{flex:1,minWidth:'200px'}}>
+                  <h4>🌐 Navegadores</h4>
+                  <div className="visitas-locations">
+                    {data.browsers.map((b, i) => {
+                      const max = data.browsers[0].visits
+                      const pct = Math.round((b.visits / max) * 100)
+                      return (
+                        <div key={i} className="visitas-loc-row">
+                          <div className="visitas-loc-label"><span>{b.browser}</span></div>
+                          <div className="visitas-loc-bar-wrap">
+                            <div className="visitas-loc-bar" style={{width:`${pct}%`}}/>
+                          </div>
+                          <div className="visitas-loc-count">{b.visits}</div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
     </div>
