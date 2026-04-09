@@ -532,7 +532,7 @@ def send_email(to, subject, html_body):
         r = _httpx.post(
             "https://api.resend.com/emails",
             headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"},
-            json={"from": "WEC Taller Automotriz <onboarding@resend.dev>", "to": [to], "subject": subject, "html": html_body},
+            json={"from": "WEC Taller Automotriz <notificaciones@wecautomotriz.com>", "to": [to], "subject": subject, "html": html_body},
             timeout=10,
         )
         if r.status_code in (200, 201):
