@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react'
 import {
   CheckCircle, AlertCircle, ChevronLeft, ChevronRight,
-  Clock, Calendar, User, Phone, Mail, FileText, ShieldCheck
+  Clock, Calendar, User, Phone, Mail, FileText
 } from 'lucide-react'
-import { getAvailability, createBooking, sendVerifyCode, confirmVerifyCode } from '../api/index.js'
+import { getAvailability, createBooking } from '../api/index.js'
 import { extractError } from '../api/errors.js'
 import './Booking.css'
 
@@ -92,12 +92,6 @@ export default function Booking() {
   const [submitting,setSubmitting]= useState(false)
   const [error,     setError]     = useState('')
 
-  // Contact verification (email only)
-  const [emailCodeSent,  setEmailCodeSent]  = useState(false)
-  const [emailCode,      setEmailCode]      = useState('')
-  const [emailVerified,  setEmailVerified]  = useState(false)
-  const [sendingEmail,   setSendingEmail]   = useState(false)
-  const [verifyError,    setVerifyError]    = useState('')
 
   /* Load availability dots for visible month */
   useEffect(() => {
@@ -151,35 +145,6 @@ export default function Booking() {
       .finally(() => setLoadAvail(false))
   }
 
-  /* Verification helpers */
-  function isVerified() { return emailVerified }
-
-  async function handleSendCode(type) {
-    const value = form.email
-    if (!value) { setVerifyError('Ingresa tu correo primero'); return }
-    setVerifyError('')
-    setSendingEmail(true)
-    try {
-      await sendVerifyCode(type, value)
-      setEmailCodeSent(true)
-    } catch(e) {
-      setVerifyError(e?.response?.data?.detail || 'No se pudo enviar el código')
-    } finally {
-      setSendingEmail(false)
-    }
-  }
-
-  async function handleConfirmCode(type) {
-    if (!emailCode) { setVerifyError('Ingresa el código'); return }
-    setVerifyError('')
-    try {
-      await confirmVerifyCode(type, form.email, emailCode)
-      setEmailVerified(true)
-    } catch(e) {
-      setVerifyError(e?.response?.data?.detail || 'Código incorrecto')
-    }
-  }
-
   /* Submit booking */
   async function submit(e) {
     e.preventDefault()
@@ -190,14 +155,6 @@ export default function Booking() {
     const cleanPhone = form.phone.replace(/[\s\-\(\)\+]/g, '')
     if (!/^\d{7,15}$/.test(cleanPhone)) {
       setError('Número de teléfono inválido. Ingresa entre 7 y 15 dígitos (ej: 987654321).')
-      return
-    }
-    if (!form.email) {
-      setError('Ingresa tu correo electrónico para verificarlo.')
-      return
-    }
-    if (!isVerified()) {
-      setError('Por favor verifica tu correo electrónico antes de continuar.')
       return
     }
     if (!token) {
@@ -415,43 +372,17 @@ export default function Booking() {
                     value={form.name} onChange={e=>setForm({...form,name:e.target.value})} required/>
                 </div>
 
-                {/* Email field + verification */}
                 <div className="form-group">
-                  <label><Mail size={13}/> Correo electrónico *</label>
-                  <div className="verify-input-row">
-                    <input type="email" placeholder="correo@ejemplo.com"
-                      value={form.email} onChange={e=>{ setForm({...form,email:e.target.value}); setEmailVerified(false); setEmailCodeSent(false); setEmailCode('') }}
-                      disabled={emailVerified}/>
-                    {emailVerified
-                      ? <span className="verify-badge verify-badge--ok"><CheckCircle size={13}/> Verificado</span>
-                      : <button type="button" className="verify-send-btn" disabled={sendingEmail} onClick={()=>handleSendCode('email')}>
-                          {sendingEmail ? 'Enviando…' : emailCodeSent ? 'Reenviar' : 'Enviar código'}
-                        </button>
-                    }
-                  </div>
-                  <span className="form-hint">📧 Te enviaremos un código al correo para verificarlo</span>
-                  {emailCodeSent && !emailVerified && (
-                    <div className="verify-code-row">
-                      <input type="text" inputMode="numeric" maxLength={6} placeholder="Código de 6 dígitos"
-                        value={emailCode} onChange={e=>setEmailCode(e.target.value.replace(/\D/,''))}/>
-                      <button type="button" className="verify-confirm-btn" onClick={()=>handleConfirmCode('email')}>
-                        Confirmar
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Phone optional */}
-                <div className="form-group">
-                  <label><Phone size={13}/> Teléfono (opcional)</label>
+                  <label><Phone size={13}/> Teléfono *</label>
                   <input type="tel" placeholder="987 654 321"
-                    value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/>
-                  <span className="form-hint">📱 Para contactarte por llamada o WhatsApp</span>
+                    value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} required/>
+                  <span className="form-hint">📱 Celular peruano: 9 dígitos comenzando en 9</span>
                 </div>
-
-                {verifyError && (
-                  <div className="booking-error"><AlertCircle size={13}/> {verifyError}</div>
-                )}
+                <div className="form-group">
+                  <label><Mail size={13}/> Correo electrónico (opcional)</label>
+                  <input type="email" placeholder="correo@ejemplo.com"
+                    value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/>
+                </div>
 
                 <div className="form-group">
                   <label>Servicio *</label>
@@ -474,15 +405,10 @@ export default function Booking() {
                 <button
                   type="submit"
                   className="booking-submit"
-                  disabled={submitting || !token || !isVerified()}
+                  disabled={submitting || !token}
                 >
                   {submitting ? 'Enviando…' : '✅ Confirmar Reserva'}
                 </button>
-                {!isVerified() && (
-                  <p className="form-hint" style={{textAlign:'center',marginTop:'0.5rem'}}>
-                    ⚠️ Verifica tu correo electrónico para continuar
-                  </p>
-                )}
               </form>
             </div>
           )}
